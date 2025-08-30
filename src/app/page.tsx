@@ -1,103 +1,104 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Heart, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/favorites');
+        if (response.ok) {
+          // User is authenticated, redirect to dashboard
+          router.push('/dashboard');
+        }
+      } catch {
+        // User is not authenticated, stay on landing page
+        console.log('User not authenticated');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="mb-12">
+            <div className="flex items-center justify-center mb-6">
+              <Heart className="w-12 h-12 text-red-500 mr-3" />
+              <h1 className="text-5xl font-bold text-gray-900">FavSetter</h1>
+            </div>
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              Organize your favorite links with ease. Save, rate, and automatically group your bookmarks by domain.
+            </p>
+            <Button 
+              size="lg" 
+              onClick={() => router.push('/login')}
+              className="text-lg px-8 py-3"
+            >
+              Get Started
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+
+          {/* Features */}
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Heart className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Save Favorites</h3>
+              <p className="text-gray-600">
+                Easily save your favorite URLs with automatic metadata fetching for titles and descriptions.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Heart key={star} className="w-3 h-3 text-green-600 fill-current" />
+                  ))}
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Rate & Review</h3>
+              <p className="text-gray-600">
+                Rate your favorites with a 5-star system to keep track of your most valuable resources.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <div className="w-6 h-6 bg-purple-600 rounded"></div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Auto-Grouping</h3>
+              <p className="text-gray-600">
+                Automatically organize your favorites by domain for better organization and discovery.
+              </p>
+            </div>
+          </div>
+
+          {/* Demo Account Info */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border max-w-md mx-auto">
+            <h3 className="text-lg font-semibold mb-3">Try the Demo</h3>
+            <p className="text-gray-600 mb-4">
+              Experience FavSetter with our demo account:
+            </p>
+            <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+              <strong>Email:</strong> demo@example.com<br />
+              <strong>Password:</strong> password123
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
