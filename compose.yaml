@@ -11,7 +11,3 @@ services:
       - ./docker-data/db:/app/prisma/db
     command: sh -c "npx prisma migrate deploy && npm run start"
     restart: unless-stopped
-
-volumes:
-  sqlite_data:
-    driver: local
