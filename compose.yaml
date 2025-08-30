@@ -1,0 +1,17 @@
+services:
+  favsetter:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-file:/db/favs.db}
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-1}
+    volumes:
+      - ./docker-data/db:/db
+    command: sh -c "npx prisma migrate deploy && npm run start"
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
+    driver: local
