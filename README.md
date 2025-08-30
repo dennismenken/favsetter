@@ -209,7 +209,7 @@ Responses are JSON; 401 for unauthorized requests.
 
 ## License
 
-MIT License (see LICENSE if present).
+MIT License.
 
 ## Disclaimer
 
