@@ -9,26 +9,11 @@ import { FavoriteCard } from '@/components/FavoriteCard';
 import { AddFavoriteDialog } from '@/components/AddFavoriteDialog';
 import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { FavoriteData, TagData, normalizeFavorite, ApiFavoriteData } from '@/types/models';
 
-interface Tag {
-  id: string;
-  name: string;
-  color?: string;
-  _count?: {
-    favorites: number;
-  };
-}
+interface Tag extends TagData { _count?: { favorites: number } }
 
-interface Favorite {
-  id: string;
-  url: string;
-  domain: string;
-  title?: string;
-  description?: string;
-  rating?: number;
-  tags?: Tag[];
-  createdAt: string;
-}
+type Favorite = FavoriteData;
 
 export default function DashboardPage() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
@@ -58,7 +43,7 @@ export default function DashboardPage() {
       }
 
       const data = await response.json();
-      setFavorites(data.favorites);
+      setFavorites((data.favorites as ApiFavoriteData[]).map(f => normalizeFavorite(f)));
     } catch (error) {
       toast.error('Failed to load favorites');
       console.error('Error fetching favorites:', error);
@@ -89,7 +74,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleFavoriteAdded = (newFavorite: Favorite) => {
+  const handleFavoriteAdded = (newFavorite: FavoriteData) => {
     setFavorites(prev => [newFavorite, ...prev]);
     // Refresh tags to include any new ones
     fetchTags();

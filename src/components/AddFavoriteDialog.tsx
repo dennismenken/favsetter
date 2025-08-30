@@ -8,21 +8,10 @@ import { Label } from '@/components/ui/label';
 import { TagInput } from '@/components/TagInput';
 import { Star, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface FavoriteResponse {
-  id: string;
-  url: string;
-  domain: string;
-  title?: string;
-  description?: string;
-  rating?: number | null;
-  tags?: { id: string; name: string; color?: string | null }[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { FavoriteData, normalizeFavorite, ApiFavoriteData } from '@/types/models';
 
 interface AddFavoriteDialogProps {
-  onFavoriteAdded: (favorite: FavoriteResponse) => void;
+  onFavoriteAdded: (favorite: FavoriteData) => void;
 }
 
 export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
@@ -49,8 +38,8 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
         throw new Error(error.error || 'Failed to add favorite');
       }
 
-      const { favorite } = await response.json();
-      onFavoriteAdded(favorite);
+      const { favorite } = await response.json() as { favorite: ApiFavoriteData };
+      onFavoriteAdded(normalizeFavorite(favorite));
       toast.success('Favorite added successfully');
       
       // Reset form
