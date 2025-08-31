@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser, verifyPassword, hashPassword, clearAuthCookie } from '@/lib/auth';
+import { getCurrentUser, verifyPassword, hashPassword } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
     const newHashed = await hashPassword(trimmedNewPassword);
     await prisma.user.update({ where: { id: user.id }, data: { password: newHashed } });
 
-    // For security, clear the auth cookie so the user must re-login
-    await clearAuthCookie();
-
-    return NextResponse.json({ success: true });
+    // Clear auth cookie on the response so the browser immediately drops it
+    const res = NextResponse.json({ success: true });
+    res.cookies.delete('auth-token');
+    return res;
   } catch (error) {
     console.error('Change password error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

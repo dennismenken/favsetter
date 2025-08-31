@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { clearAuthCookie } from '@/lib/auth';
 
 export async function POST() {
   try {
-    await clearAuthCookie();
-    return NextResponse.json({ success: true });
+    const res = NextResponse.json({ success: true });
+    res.cookies.delete('auth-token');
+    return res;
   } catch (error) {
     console.error('Logout error:', error);
     return NextResponse.json(
