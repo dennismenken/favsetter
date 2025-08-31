@@ -168,6 +168,7 @@ npm run start
 
 - `POST /api/auth/login` – Login (JSON: `email`, `password`)
 - `POST /api/auth/logout` – Logout
+- `POST /api/auth/change-password` – Passwort ändern (auth required; JSON: `currentPassword`, `newPassword`)
 - `GET /api/favorites` – List favorites (auth required)
 - `POST /api/favorites` – Create favorite (`url`, optional `rating`, `tags[]`)
 - `PATCH /api/favorites/:id` – Update favorite (rating / tags)

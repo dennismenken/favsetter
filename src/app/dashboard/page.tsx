@@ -7,7 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { AddFavoriteDialog } from '@/components/AddFavoriteDialog';
-import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon } from 'lucide-react';
+import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { FavoriteData, TagData, normalizeFavorite, ApiFavoriteData } from '@/types/models';
 
@@ -181,14 +188,25 @@ export default function DashboardPage() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <User className="w-4 h-4 mr-1" />
-                User
-              </div>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-1" />
-                Logout
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Benutzer
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => router.push('/settings')}>
+                    <Settings className="w-4 h-4" />
+                    Einstellungen
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
