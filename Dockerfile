@@ -1,7 +1,7 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl python3 make g++
 COPY package.json package-lock.json* ./
 RUN npm ci --legacy-peer-deps
 
@@ -18,20 +18,20 @@ RUN npm run build
 
 FROM node:24-alpine AS runner
 WORKDIR /app
+RUN apk add --no-cache openssl libstdc++
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
-
-ENV DATABASE_URL=file:/app/prisma/db/favs.db
 
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/src/lib/dbUrl.mjs ./src/lib/dbUrl.mjs
 
-RUN mkdir -p /app/prisma/db \
-  && ln -sfn /app/prisma/db /db
+RUN ln -sfn /app/prisma/db /db
 
 USER root
 EXPOSE 3000

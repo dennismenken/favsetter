@@ -1,7 +1,11 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import bcrypt from 'bcryptjs';
+import { resolveDatabasePath } from '../src/lib/dbUrl.mjs';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaBetterSqlite3({ url: resolveDatabasePath({ ensureDir: true }) });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting database seeding...');
@@ -20,7 +24,7 @@ async function main() {
     },
   });
 
-  const adminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'admin@favsetter.com' },
     update: {},
     create: {
