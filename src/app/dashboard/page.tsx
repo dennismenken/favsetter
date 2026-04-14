@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { AddFavoriteDialog } from '@/components/AddFavoriteDialog';
+import { BulkImportDialog } from '@/components/BulkImportDialog';
 import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon, Settings } from 'lucide-react';
 import {
   DropdownMenu,
@@ -84,6 +85,12 @@ export default function DashboardPage() {
   const handleFavoriteAdded = (newFavorite: FavoriteData) => {
     setFavorites(prev => [newFavorite, ...prev]);
     // Refresh tags to include any new ones
+    fetchTags();
+  };
+
+  const handleBulkImported = () => {
+    setIsLoading(true);
+    fetchFavorites();
     fetchTags();
   };
 
@@ -192,13 +199,13 @@ export default function DashboardPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    Benutzer
+                    Account
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => router.push('/settings')}>
                     <Settings className="w-4 h-4" />
-                    Einstellungen
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onClick={handleLogout}>
@@ -225,7 +232,10 @@ export default function DashboardPage() {
               className="pl-10"
             />
           </div>
-          <AddFavoriteDialog onFavoriteAdded={handleFavoriteAdded} />
+          <div className="flex gap-2">
+            <BulkImportDialog onImported={handleBulkImported} />
+            <AddFavoriteDialog onFavoriteAdded={handleFavoriteAdded} />
+          </div>
         </div>
 
         {/* Tag Filters */}

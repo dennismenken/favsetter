@@ -33,11 +33,11 @@ export default function SettingsPage() {
         router.push('/login');
         return;
       }
-      if (!response.ok) throw new Error('Tags konnten nicht geladen werden');
+      if (!response.ok) throw new Error('Failed to load tags');
       const data = await response.json();
       setTags(data.tags);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Tags konnten nicht geladen werden');
+      toast.error(error instanceof Error ? error.message : 'Failed to load tags');
     } finally {
       setTagsLoading(false);
     }
@@ -51,7 +51,7 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmPassword) return;
     if (newPassword !== confirmPassword) {
-      toast.error('Die neuen Passwörter stimmen nicht überein.');
+      toast.error('The new passwords do not match.');
       return;
     }
     setIsLoading(true);
@@ -62,18 +62,18 @@ export default function SettingsPage() {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       if (response.status === 401) {
-        toast.error('Bitte erneut einloggen.');
+        toast.error('Please sign in again.');
         router.push('/login');
         return;
       }
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Passwort ändern fehlgeschlagen');
+        throw new Error(err.error || 'Failed to change password');
       }
-      toast.success('Passwort geändert. Bitte erneut einloggen.');
+      toast.success('Password changed. Please sign in again.');
       router.push('/login');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Passwort ändern fehlgeschlagen');
+      toast.error(error instanceof Error ? error.message : 'Failed to change password');
     } finally {
       setIsLoading(false);
     }
@@ -82,8 +82,8 @@ export default function SettingsPage() {
   const handleDeleteTag = async (tag: ManagedTag) => {
     const usage = tag._count?.favorites ?? 0;
     const message = usage > 0
-      ? `Tag "${tag.name}" wird von ${usage} Favoriten verwendet und dort ebenfalls entfernt. Fortfahren?`
-      : `Tag "${tag.name}" wirklich löschen?`;
+      ? `Tag "${tag.name}" is used by ${usage} favorite${usage === 1 ? '' : 's'} and will also be removed from them. Continue?`
+      : `Delete tag "${tag.name}"?`;
     if (!window.confirm(message)) return;
 
     setDeletingTagId(tag.id);
@@ -95,12 +95,12 @@ export default function SettingsPage() {
       }
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Tag konnte nicht gelöscht werden');
+        throw new Error(err.error || 'Failed to delete tag');
       }
       setTags(prev => prev.filter(t => t.id !== tag.id));
-      toast.success(`Tag "${tag.name}" gelöscht`);
+      toast.success(`Tag "${tag.name}" deleted`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Tag konnte nicht gelöscht werden');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete tag');
     } finally {
       setDeletingTagId(null);
     }
@@ -111,12 +111,12 @@ export default function SettingsPage() {
       <div className="max-w-xl mx-auto space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Passwort ändern</CardTitle>
+            <CardTitle>Change Password</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="current">Aktuelles Passwort</Label>
+                <Label htmlFor="current">Current password</Label>
                 <Input
                   id="current"
                   type="password"
@@ -127,7 +127,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new">Neues Passwort</Label>
+                <Label htmlFor="new">New password</Label>
                 <Input
                   id="new"
                   type="password"
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirm">Neues Passwort bestätigen</Label>
+                <Label htmlFor="confirm">Confirm new password</Label>
                 <Input
                   id="confirm"
                   type="password"
@@ -150,7 +150,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Speichern…' : 'Passwort ändern'}
+                  {isLoading ? 'Saving…' : 'Change password'}
                 </Button>
               </div>
             </form>
@@ -161,17 +161,17 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TagIcon className="w-4 h-4" />
-              Tags verwalten
+              Manage Tags
             </CardTitle>
           </CardHeader>
           <CardContent>
             {tagsLoading ? (
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Lade Tags…
+                Loading tags…
               </div>
             ) : tags.length === 0 ? (
-              <p className="text-sm text-gray-500">Noch keine Tags vorhanden.</p>
+              <p className="text-sm text-gray-500">No tags yet.</p>
             ) : (
               <ul className="divide-y">
                 {tags.map((tag) => {
@@ -182,7 +182,7 @@ export default function SettingsPage() {
                       <div className="min-w-0">
                         <p className="font-medium truncate">{tag.name}</p>
                         <p className="text-xs text-gray-500">
-                          {usage === 1 ? '1 Favorit' : `${usage} Favoriten`}
+                          {usage === 1 ? '1 favorite' : `${usage} favorites`}
                         </p>
                       </div>
                       <Button
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                         size="sm"
                         onClick={() => handleDeleteTag(tag)}
                         disabled={isDeleting}
-                        aria-label={`Tag ${tag.name} löschen`}
+                        aria-label={`Delete tag ${tag.name}`}
                       >
                         {isDeleting ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
