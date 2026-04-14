@@ -101,12 +101,12 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
   };
 
   return (
-    <Card className="group hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+    <Card className="group hover:shadow-md transition-shadow min-w-0">
+      <CardHeader className="pb-3 grid-cols-[minmax(0,1fr)]">
+        <div className="flex items-start justify-between gap-2 min-w-0">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm leading-6 text-foreground truncate">{favorite.title || 'Untitled'}</h3>
-            <p className="text-xs text-muted-foreground mt-1">{favorite.domain}</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{favorite.domain}</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
