@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Tag as TagIcon, Trash2 } from 'lucide-react';
+import { Loader2, Tag as TagIcon, Trash2, KeyRound, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { Logo } from '@/components/Logo';
+import { tagChipClass } from '@/lib/tagColor';
 
 interface ManagedTag {
   id: string;
@@ -107,16 +109,51 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-xl mx-auto space-y-6">
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 border-b border-[oklch(1_0_0/_0.07)] bg-[oklch(0.16_0.04_265/_0.72)] backdrop-blur-xl">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center size-9 rounded-lg border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)] shadow-[0_0_24px_-8px_oklch(0.82_0.16_200/_0.4)]">
+                <Logo className="w-5 h-5 text-[oklch(0.82_0.16_200)]" />
+              </span>
+              <div className="leading-none">
+                <p className="text-base font-bold tracking-tight text-brand-gradient">FavSetter</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-mono mt-0.5">
+                  Settings
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+              <ArrowLeft className="w-4 h-4" />
+              Back to vault
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div>
+          <p className="font-eyebrow">Account</p>
+          <h1 className="font-display text-3xl mt-2">Settings</h1>
+          <p className="text-muted-foreground text-sm mt-2">
+            Manage your password and the tags in your vault.
+          </p>
+        </div>
+
         <Card>
-          <CardHeader>
-            <CardTitle>Change Password</CardTitle>
+          <CardHeader className="gap-1">
+            <p className="font-eyebrow flex items-center gap-1.5">
+              <KeyRound className="w-3 h-3" /> Security
+            </p>
+            <CardTitle>Change password</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="current">Current password</Label>
+                <Label htmlFor="current" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Current password
+                </Label>
                 <Input
                   id="current"
                   type="password"
@@ -124,33 +161,49 @@ export default function SettingsPage() {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="new">New password</Label>
-                <Input
-                  id="new"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="new" className="text-xs uppercase tracking-wider text-muted-foreground">
+                    New password
+                  </Label>
+                  <Input
+                    id="new"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm" className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Confirm new password
+                  </Label>
+                  <Input
+                    id="confirm"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm">Confirm new password</Label>
-                <Input
-                  id="confirm"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end pt-2">
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Saving…' : 'Change password'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    'Update password'
+                  )}
                 </Button>
               </div>
             </form>
@@ -158,39 +211,43 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TagIcon className="w-4 h-4" />
-              Manage Tags
-            </CardTitle>
+          <CardHeader className="gap-1">
+            <p className="font-eyebrow flex items-center gap-1.5">
+              <TagIcon className="w-3 h-3" /> Library
+            </p>
+            <CardTitle>Manage tags</CardTitle>
           </CardHeader>
           <CardContent>
             {tagsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Loading tags…
               </div>
             ) : tags.length === 0 ? (
-              <p className="text-sm text-gray-500">No tags yet.</p>
+              <p className="text-sm text-muted-foreground py-4">No tags yet. Add one when you save a favorite.</p>
             ) : (
-              <ul className="divide-y">
+              <ul className="divide-y divide-[oklch(1_0_0/_0.06)] -my-2">
                 {tags.map((tag) => {
                   const usage = tag._count?.favorites ?? 0;
                   const isDeleting = deletingTagId === tag.id;
                   return (
-                    <li key={tag.id} className="flex items-center justify-between py-2 gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{tag.name}</p>
-                        <p className="text-xs text-gray-500">
+                    <li
+                      key={tag.id}
+                      className="flex items-center justify-between py-3 gap-3 group"
+                    >
+                      <div className="min-w-0 flex items-center gap-3">
+                        <span className={tagChipClass(tag.name)}>{tag.name}</span>
+                        <p className="text-xs text-muted-foreground font-mono tabular-nums">
                           {usage === 1 ? '1 favorite' : `${usage} favorites`}
                         </p>
                       </div>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteTag(tag)}
                         disabled={isDeleting}
                         aria-label={`Delete tag ${tag.name}`}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 group-hover:opacity-100 transition-opacity"
                       >
                         {isDeleting ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -205,7 +262,7 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }

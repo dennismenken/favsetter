@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TagInput } from '@/components/TagInput';
 import { Tag, Loader2 } from 'lucide-react';
@@ -43,7 +43,7 @@ export function EditTagsDialog({ favoriteId, currentTags, onTagsUpdated, childre
 
       const { favorite } = await response.json();
       onTagsUpdated(favoriteId, favorite.tags);
-      toast.success('Tags updated successfully');
+      toast.success('Tags updated');
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update tags');
@@ -55,7 +55,6 @@ export function EditTagsDialog({ favoriteId, currentTags, onTagsUpdated, childre
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (newOpen) {
-      // Reset tags to current state when opening
       setTags(currentTags.map(tag => tag.name));
     }
   };
@@ -67,19 +66,22 @@ export function EditTagsDialog({ favoriteId, currentTags, onTagsUpdated, childre
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Tag className="w-4 h-4" />
-            Edit Tags
-          </DialogTitle>
+          <p className="font-eyebrow flex items-center gap-1.5">
+            <Tag className="w-3 h-3" /> Edit
+          </p>
+          <DialogTitle>Edit tags</DialogTitle>
+          <DialogDescription className="sr-only">
+            Add or remove tags for this favorite.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <TagInput
             value={tags}
             onChange={setTags}
-            placeholder="Add or remove tags..."
+            placeholder="Add or remove tags…"
           />
-          
-          <div className="flex justify-end gap-2">
+
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -91,11 +93,11 @@ export function EditTagsDialog({ favoriteId, currentTags, onTagsUpdated, childre
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving…
                 </>
               ) : (
-                'Save Tags'
+                'Save tags'
               )}
             </Button>
           </div>
@@ -103,4 +105,4 @@ export function EditTagsDialog({ favoriteId, currentTags, onTagsUpdated, childre
       </DialogContent>
     </Dialog>
   );
-} 
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,9 +40,8 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
 
       const { favorite } = await response.json() as { favorite: ApiFavoriteData };
       onFavoriteAdded(normalizeFavorite(favorite));
-      toast.success('Favorite added successfully');
-      
-      // Reset form
+      toast.success('Saved to your vault.');
+
       setUrl('');
       setRating(null);
       setTags([]);
@@ -57,29 +56,35 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
   const renderStarRating = () => {
     return (
       <div className="space-y-2">
-        <Label>Rating (optional)</Label>
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          Rating <span className="lowercase tracking-normal text-muted-foreground/60">(optional)</span>
+        </Label>
         <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(rating === star ? null : star)}
-              className="p-1 hover:scale-110 transition-transform"
-            >
-              <Star
-                className={`w-5 h-5 ${
-                  star <= (rating || 0)
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'text-gray-300 hover:text-yellow-400'
-                }`}
-              />
-            </button>
-          ))}
+          {[1, 2, 3, 4, 5].map((star) => {
+            const filled = star <= (rating || 0);
+            return (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(rating === star ? null : star)}
+                className="p-1 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded"
+                aria-label={`Rate ${star} of 5`}
+              >
+                <Star
+                  className={`w-5 h-5 transition-colors ${
+                    filled
+                      ? 'fill-[oklch(0.84_0.17_85)] text-[oklch(0.84_0.17_85)] drop-shadow-[0_0_8px_oklch(0.84_0.17_85/_0.6)]'
+                      : 'text-muted-foreground/40 hover:text-[oklch(0.84_0.17_85)]'
+                  }`}
+                />
+              </button>
+            );
+          })}
           {rating && (
             <button
               type="button"
               onClick={() => setRating(null)}
-              className="ml-2 text-sm text-muted-foreground hover:text-foreground"
+              className="ml-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Clear
             </button>
@@ -93,17 +98,23 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Favorite
+          <Plus className="w-4 h-4" />
+          Add favorite
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Favorite</DialogTitle>
+          <p className="font-eyebrow">New entry</p>
+          <DialogTitle>Add a favorite</DialogTitle>
+          <DialogDescription className="sr-only">
+            Save a link to your vault. Title and description are pulled from the page automatically.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="url">URL</Label>
+            <Label htmlFor="url" className="text-xs uppercase tracking-wider text-muted-foreground">
+              URL
+            </Label>
             <Input
               id="url"
               type="url"
@@ -112,19 +123,20 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
               onChange={(e) => setUrl(e.target.value)}
               required
               disabled={isLoading}
+              autoFocus
             />
           </div>
-          
+
           <TagInput
             label="Tags (optional)"
             value={tags}
             onChange={setTags}
-            placeholder="Add tags..."
+            placeholder="e.g. design, inspiration"
           />
-          
+
           {renderStarRating()}
-          
-          <div className="flex justify-end gap-2">
+
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -136,11 +148,14 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
             <Button type="submit" disabled={isLoading || !url.trim()}>
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Adding...
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Adding…
                 </>
               ) : (
-                'Add Favorite'
+                <>
+                  <Plus className="w-4 h-4" />
+                  Save link
+                </>
               )}
             </Button>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Upload, Loader2 } from 'lucide-react';
@@ -72,17 +72,26 @@ export function BulkImportDialog({ onImported }: BulkImportDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Upload className="w-4 h-4 mr-2" />
-          Bulk Import
+          <Upload className="w-4 h-4" />
+          Bulk import
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Bulk Import Favorites</DialogTitle>
+          <p className="font-eyebrow">Batch entry</p>
+          <DialogTitle>Bulk import favorites</DialogTitle>
+          <DialogDescription className="sr-only">
+            Paste one URL per line. Duplicates and invalid URLs are skipped. Rating and tags can be added per entry later.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="bulk-urls">URLs (one per line)</Label>
+            <Label
+              htmlFor="bulk-urls"
+              className="text-xs uppercase tracking-wider text-muted-foreground"
+            >
+              URLs <span className="lowercase tracking-normal text-muted-foreground/60">(one per line)</span>
+            </Label>
             <textarea
               id="bulk-urls"
               value={text}
@@ -90,18 +99,18 @@ export function BulkImportDialog({ onImported }: BulkImportDialogProps) {
               placeholder={'https://example.com\nhttps://another.com'}
               rows={10}
               disabled={isLoading}
-              className="flex min-h-[180px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[200px] w-full rounded-lg border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.03)] px-3.5 py-2.5 text-sm font-mono shadow-[inset_0_1px_0_0_oklch(1_0_0/_0.04)] outline-none transition-[color,background-color,border-color,box-shadow] duration-200 placeholder:text-muted-foreground/60 hover:border-[oklch(1_0_0/_0.16)] focus-visible:border-[oklch(0.82_0.16_200/_0.6)] focus-visible:bg-[oklch(1_0_0/_0.05)] focus-visible:shadow-[inset_0_1px_0_0_oklch(1_0_0/_0.06),0_0_0_4px_oklch(0.82_0.16_200/_0.18),0_0_24px_-6px_oklch(0.82_0.16_200/_0.4)] disabled:cursor-not-allowed disabled:opacity-50 leading-relaxed"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground font-mono">
               {urls.length === 0
                 ? 'No URLs entered yet.'
                 : urls.length === 1
                 ? '1 URL detected.'
                 : `${urls.length} URLs detected.`}{' '}
-              Rating and tags can be added per entry later.
+              <span className="text-muted-foreground/60">Rating and tags can be added per entry later.</span>
             </p>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -113,11 +122,14 @@ export function BulkImportDialog({ onImported }: BulkImportDialogProps) {
             <Button type="submit" disabled={isLoading || urls.length === 0}>
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Importing…
                 </>
               ) : (
-                `Import${urls.length > 0 ? ` (${urls.length})` : ''}`
+                <>
+                  <Upload className="w-4 h-4" />
+                  {urls.length > 0 ? `Import ${urls.length}` : 'Import'}
+                </>
               )}
             </Button>
           </div>

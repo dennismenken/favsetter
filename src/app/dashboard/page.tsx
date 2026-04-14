@@ -8,7 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { AddFavoriteDialog } from '@/components/AddFavoriteDialog';
 import { BulkImportDialog } from '@/components/BulkImportDialog';
-import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon, Settings } from 'lucide-react';
+import { Logo } from '@/components/Logo';
+import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon, Settings, Sparkles } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { FavoriteData, TagData, normalizeFavorite, ApiFavoriteData } from '@/types/models';
+import { tagChipClass } from '@/lib/tagColor';
 
 interface Tag extends TagData { _count?: { favorites: number } }
 
@@ -40,7 +42,7 @@ export default function DashboardPage() {
   const fetchFavorites = async () => {
     try {
       const response = await fetch('/api/favorites');
-      
+
       if (response.status === 401) {
         router.push('/login');
         return;
@@ -84,7 +86,6 @@ export default function DashboardPage() {
 
   const handleFavoriteAdded = (newFavorite: FavoriteData) => {
     setFavorites(prev => [newFavorite, ...prev]);
-    // Refresh tags to include any new ones
     fetchTags();
   };
 
@@ -95,10 +96,9 @@ export default function DashboardPage() {
   };
 
   const handleFavoriteUpdate = (id: string, updates: Partial<Favorite>) => {
-    setFavorites(prev => 
+    setFavorites(prev =>
       prev.map(fav => fav.id === id ? { ...fav, ...updates } : fav)
     );
-    // Refresh tags if tags were updated
     if (updates.tags !== undefined) {
       fetchTags();
     }
@@ -108,23 +108,21 @@ export default function DashboardPage() {
     setFavorites(prev => prev.filter(fav => fav.id !== id));
   };
 
-  // Filter favorites based on search query and selected tags
   const filteredFavorites = favorites.filter(favorite => {
-    const matchesSearch = 
+    const matchesSearch =
       favorite.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       favorite.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
       favorite.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
       favorite.tags?.some(tag => tag.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesTags = selectedTags.length === 0 || 
-      selectedTags.every(selectedTag => 
+    const matchesTags = selectedTags.length === 0 ||
+      selectedTags.every(selectedTag =>
         favorite.tags?.some(tag => tag.name === selectedTag)
       );
 
     return matchesSearch && matchesTags;
   });
 
-  // Group favorites by domain
   const groupedFavorites = filteredFavorites.reduce((groups, favorite) => {
     const domain = favorite.domain;
     if (!groups[domain]) {
@@ -134,35 +132,13 @@ export default function DashboardPage() {
     return groups;
   }, {} as Record<string, Favorite[]>);
 
-  // Sort domains by number of favorites (descending)
   const sortedDomains = Object.keys(groupedFavorites).sort(
     (a, b) => groupedFavorites[b].length - groupedFavorites[a].length
   );
 
-  const getTagColor = (tag: string) => {
-    // Generate a consistent color based on tag name
-    const colors = [
-      'bg-blue-100 text-blue-800 border-blue-200',
-      'bg-green-100 text-green-800 border-green-200',
-      'bg-purple-100 text-purple-800 border-purple-200',
-      'bg-orange-100 text-orange-800 border-orange-200',
-      'bg-pink-100 text-pink-800 border-pink-200',
-      'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'bg-teal-100 text-teal-800 border-teal-200',
-      'bg-red-100 text-red-800 border-red-200',
-    ];
-    
-    const hash = tag.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   const toggleTagFilter = (tagName: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tagName) 
+    setSelectedTags(prev =>
+      prev.includes(tagName)
         ? prev.filter(t => t !== tagName)
         : [...prev, tagName]
     );
@@ -174,35 +150,46 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Heart className="w-8 h-8 text-red-500 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">Loading your favorites...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center size-14 rounded-xl border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)] backdrop-blur-md">
+            <Logo className="w-8 h-8 text-[oklch(0.82_0.16_200)] animate-pulse" />
+          </div>
+          <p className="text-muted-foreground text-sm font-mono tracking-wide">Loading your vault…</p>
         </div>
       </div>
     );
   }
 
+  const totalRated = favorites.filter(f => typeof f.rating === 'number').length;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b">
+      <header className="sticky top-0 z-30 border-b border-[oklch(1_0_0/_0.07)] bg-[oklch(0.16_0.04_265/_0.72)] backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Heart className="w-6 h-6 text-red-500 mr-2" />
-              <h1 className="text-xl font-bold text-gray-900">FavSetter</h1>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center size-9 rounded-lg border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)] shadow-[0_0_24px_-8px_oklch(0.82_0.16_200/_0.4)]">
+                <Logo className="w-5 h-5 text-[oklch(0.82_0.16_200)]" />
+              </span>
+              <div className="leading-none">
+                <p className="text-base font-bold tracking-tight text-brand-gradient">FavSetter</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-mono mt-0.5">
+                  Personal vault
+                </p>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-4">
+
+            <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="gap-2">
                     <User className="w-4 h-4" />
                     Account
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-44">
                   <DropdownMenuItem onClick={() => router.push('/settings')}>
                     <Settings className="w-4 h-4" />
                     Settings
@@ -220,126 +207,156 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+        {/* Hero / Stats */}
+        <section className="grid gap-6 lg:grid-cols-[2fr_3fr] items-stretch">
+          <div className="card-glass relative overflow-hidden p-6 sm:p-8">
+            <div className="absolute -top-20 -right-20 size-64 rounded-full blur-3xl opacity-50"
+                 style={{ background: 'radial-gradient(circle, oklch(0.82 0.16 200 / 0.45), transparent 70%)' }} aria-hidden />
+            <p className="font-eyebrow flex items-center gap-2">
+              <Sparkles className="w-3 h-3" /> Your vault
+            </p>
+            <h2 className="font-display text-3xl sm:text-4xl mt-3 leading-tight">
+              <span className="text-brand-gradient">{favorites.length}</span>{' '}
+              <span className="text-foreground/85">{favorites.length === 1 ? 'link' : 'links'}</span>{' '}
+              <span className="text-muted-foreground font-normal">across</span>{' '}
+              <span className="text-foreground/85">{Object.keys(groupedFavorites).length}</span>{' '}
+              <span className="text-muted-foreground font-normal">{Object.keys(groupedFavorites).length === 1 ? 'domain' : 'domains'}</span>
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground max-w-md">
+              {totalRated > 0
+                ? `You've rated ${totalRated} of them. Keep curating.`
+                : 'Save what matters. Rate what you love. Find it again instantly.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            <StatTile
+              label="Favorites"
+              value={favorites.length}
+              accent="cyan"
+              icon={<Heart className="w-4 h-4" />}
+            />
+            <StatTile
+              label="Domains"
+              value={Object.keys(groupedFavorites).length}
+              accent="magenta"
+              icon={<Globe className="w-4 h-4" />}
+            />
+            <StatTile
+              label="Showing"
+              value={filteredFavorites.length}
+              accent="amber"
+              icon={<Search className="w-4 h-4" />}
+            />
+          </div>
+        </section>
+
+        {/* Action Bar */}
+        <section className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 w-4 h-4 pointer-events-none" />
             <Input
-              placeholder="Search favorites..."
+              placeholder="Search title, domain, tag…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-11"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-[oklch(1_0_0/_0.08)] transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           <div className="flex gap-2">
             <BulkImportDialog onImported={handleBulkImported} />
             <AddFavoriteDialog onFavoriteAdded={handleFavoriteAdded} />
           </div>
-        </div>
+        </section>
 
         {/* Tag Filters */}
         {availableTags.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <TagIcon className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">Filter by tags:</span>
+          <section className="space-y-3">
+            <div className="flex items-center gap-3">
+              <p className="font-eyebrow flex items-center gap-1.5">
+                <TagIcon className="w-3 h-3" /> Filter by tag
+              </p>
               {selectedTags.length > 0 && (
                 <button
                   onClick={clearTagFilters}
-                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
                 >
                   <X className="w-3 h-3" />
-                  Clear all
+                  Clear {selectedTags.length}
                 </button>
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTagFilter(tag.name)}
-                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-                    selectedTags.includes(tag.name)
-                      ? `${getTagColor(tag.name)} ring-2 ring-offset-1 ring-blue-500`
-                      : `${getTagColor(tag.name)} hover:ring-2 hover:ring-offset-1 hover:ring-gray-300`
-                  }`}
-                >
-                  {tag.name}
-                  {tag._count && (
-                    <span className="ml-1 opacity-75">
-                      ({tag._count.favorites})
-                    </span>
-                  )}
-                </button>
-              ))}
+              {availableTags.map((tag) => {
+                const active = selectedTags.includes(tag.name);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTagFilter(tag.name)}
+                    data-active={active}
+                    aria-pressed={active}
+                    className={tagChipClass(tag.name)}
+                  >
+                    <span className="leading-none">{tag.name}</span>
+                    {tag._count && (
+                      <span className="opacity-60 font-normal leading-none tabular-nums">
+                        {tag._count.favorites}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </section>
         )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="flex items-center">
-              <Heart className="w-5 h-5 text-red-500 mr-2" />
-              <div>
-                <p className="text-sm text-gray-600">Total Favorites</p>
-                <p className="text-2xl font-bold">{favorites.length}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="flex items-center">
-              <Globe className="w-5 h-5 text-blue-500 mr-2" />
-              <div>
-                <p className="text-sm text-gray-600">Unique Domains</p>
-                <p className="text-2xl font-bold">{Object.keys(groupedFavorites).length}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="flex items-center">
-              <Search className="w-5 h-5 text-green-500 mr-2" />
-              <div>
-                <p className="text-sm text-gray-600">Showing</p>
-                <p className="text-2xl font-bold">{filteredFavorites.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Favorites */}
         {filteredFavorites.length === 0 ? (
-          <div className="text-center py-12">
-            <Heart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery ? 'No favorites found' : 'No favorites yet'}
+          <div className="card-glass text-center py-16 px-6">
+            <div className="inline-flex items-center justify-center size-14 rounded-xl border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)] mb-5">
+              <Heart className="w-6 h-6 text-muted-foreground/70" />
+            </div>
+            <h3 className="font-display text-2xl mb-2">
+              {searchQuery || selectedTags.length > 0 ? 'Nothing matches.' : 'The vault is empty.'}
             </h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery 
-                ? 'Try adjusting your search terms'
-                : 'Start building your collection by adding your first favorite link'
-              }
+            <p className="text-muted-foreground mb-7 max-w-sm mx-auto">
+              {searchQuery || selectedTags.length > 0
+                ? 'Try a different keyword or clear your filters.'
+                : 'Drop in your first link and watch it get organised.'}
             </p>
-            {!searchQuery && (
-              <AddFavoriteDialog onFavoriteAdded={handleFavoriteAdded} />
+            {!searchQuery && selectedTags.length === 0 && (
+              <div className="inline-flex">
+                <AddFavoriteDialog onFavoriteAdded={handleFavoriteAdded} />
+              </div>
             )}
           </div>
         ) : (
-          <div className="space-y-8">
-            {sortedDomains.map(domain => (
-              <div key={domain}>
-                <div className="flex items-center mb-4">
-                  <Globe className="w-5 h-5 text-gray-500 mr-2" />
-                  <h2 className="text-lg font-semibold text-gray-900">
+          <div className="space-y-10">
+            {sortedDomains.map((domain, idx) => (
+              <section key={domain}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="inline-flex items-center justify-center size-8 rounded-md border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)]">
+                    <Globe className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <h2 className="text-base font-semibold tracking-tight text-foreground/90">
                     {domain}
                   </h2>
-                  <span className="ml-2 text-sm text-gray-500">
-                    ({groupedFavorites[domain].length})
+                  <span className="font-mono text-[0.7rem] text-muted-foreground/80 px-2 py-0.5 rounded-md border border-[oklch(1_0_0/_0.08)] bg-[oklch(1_0_0/_0.03)]">
+                    {groupedFavorites[domain].length}
                   </span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-[oklch(1_0_0/_0.08)] to-transparent" />
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {groupedFavorites[domain].map(favorite => (
                     <FavoriteCard
                       key={favorite.id}
@@ -349,15 +366,63 @@ export default function DashboardPage() {
                     />
                   ))}
                 </div>
-                
-                {domain !== sortedDomains[sortedDomains.length - 1] && (
-                  <Separator className="mt-6" />
+
+                {idx !== sortedDomains.length - 1 && (
+                  <Separator className="mt-10 bg-[oklch(1_0_0/_0.05)]" />
                 )}
-              </div>
+              </section>
             ))}
           </div>
         )}
       </main>
+
+      <footer className="border-t border-[oklch(1_0_0/_0.05)] py-8 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between text-xs text-muted-foreground/60 font-mono">
+          <span>FavSetter</span>
+          <span>Stay curious.</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  accent,
+  icon,
+}: {
+  label: string;
+  value: number;
+  accent: 'cyan' | 'magenta' | 'amber';
+  icon: React.ReactNode;
+}) {
+  const accentColor =
+    accent === 'cyan' ? 'oklch(0.82 0.16 200)'
+    : accent === 'magenta' ? 'oklch(0.68 0.27 350)'
+    : 'oklch(0.84 0.17 85)';
+  return (
+    <div className="card-glass card-glow-hover p-4 flex flex-col justify-between gap-3">
+      <div className="flex items-center justify-between">
+        <span
+          className="inline-flex items-center justify-center size-8 rounded-md border"
+          style={{
+            color: accentColor,
+            borderColor: `color-mix(in oklab, ${accentColor} 35%, transparent)`,
+            background: `color-mix(in oklab, ${accentColor} 10%, transparent)`,
+          }}
+        >
+          {icon}
+        </span>
+      </div>
+      <div>
+        <p className="font-display text-3xl leading-none" style={{ color: accentColor }}>
+          {value}
+        </p>
+        <p className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground mt-2">
+          {label}
+        </p>
+      </div>
     </div>
   );
 }

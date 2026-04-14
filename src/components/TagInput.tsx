@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { tagChipClass } from '@/lib/tagColor';
 
 interface Tag {
   id: string;
@@ -23,7 +24,7 @@ interface TagInputProps {
   className?: string;
 }
 
-export function TagInput({ label, value = [], onChange, placeholder = "Add tags...", className }: TagInputProps) {
+export function TagInput({ label, value = [], onChange, placeholder = 'Add tags…', className }: TagInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -31,7 +32,6 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Fetch tag suggestions based on input
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (inputValue.trim().length > 0) {
@@ -39,7 +39,6 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
           const response = await fetch(`/api/tags?q=${encodeURIComponent(inputValue.trim())}`);
           if (response.ok) {
             const data = await response.json();
-            // Filter out already selected tags
             const filteredSuggestions = data.tags.filter(
               (tag: Tag) => !value.includes(tag.name)
             );
@@ -84,7 +83,7 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex(prev => 
+      setSelectedIndex(prev =>
         prev < suggestions.length - 1 ? prev + 1 : prev
       );
     } else if (e.key === 'ArrowUp') {
@@ -103,52 +102,32 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
     }
   };
 
-  const getTagColor = (tag: string) => {
-    // Generate a consistent color based on tag name
-    const colors = [
-      'bg-blue-100 text-blue-800',
-      'bg-green-100 text-green-800',
-      'bg-purple-100 text-purple-800',
-      'bg-orange-100 text-orange-800',
-      'bg-pink-100 text-pink-800',
-      'bg-indigo-100 text-indigo-800',
-      'bg-teal-100 text-teal-800',
-      'bg-red-100 text-red-800',
-    ];
-    
-    const hash = tag.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   return (
-    <div className={cn("relative", className)}>
-      {label && <Label className="mb-2 block">{label}</Label>}
-      
+    <div className={cn('relative', className)}>
+      {label && (
+        <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground">
+          {label}
+        </Label>
+      )}
+
       {/* Tags Display */}
-      <div className="flex flex-wrap gap-2 mb-2">
-        {value.map((tag) => (
-          <span
-            key={tag}
-            className={cn(
-              "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-              getTagColor(tag)
-            )}
-          >
-            {tag}
-            <button
-              type="button"
-              onClick={() => removeTag(tag)}
-              className="ml-1.5 hover:bg-black/10 rounded-full p-0.5 transition-colors"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </span>
-        ))}
-      </div>
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
+          {value.map((tag) => (
+            <span key={tag} className={tagChipClass(tag)}>
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="ml-0.5 -mr-0.5 hover:bg-[oklch(1_0_0/_0.12)] rounded-sm p-0.5 transition-colors"
+                aria-label={`Remove tag ${tag}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Input */}
       <div className="relative">
@@ -161,7 +140,6 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
             if (suggestions.length > 0) setShowSuggestions(true);
           }}
           onBlur={() => {
-            // Delay hiding suggestions to allow clicking on them
             setTimeout(() => setShowSuggestions(false), 200);
           }}
           placeholder={placeholder}
@@ -172,7 +150,7 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
         {showSuggestions && suggestions.length > 0 && (
           <div
             ref={suggestionsRef}
-            className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto"
+            className="absolute z-50 w-full mt-2 card-glass overflow-hidden max-h-56 overflow-y-auto p-1"
           >
             {suggestions.map((suggestion, index) => (
               <button
@@ -180,14 +158,16 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
                 type="button"
                 onClick={() => addTag(suggestion.name)}
                 className={cn(
-                  "w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors text-sm",
-                  selectedIndex === index && "bg-blue-50"
+                  'w-full px-3 py-2 text-left text-sm rounded-md transition-colors flex items-center justify-between gap-2',
+                  selectedIndex === index
+                    ? 'bg-[oklch(0.82_0.16_200/_0.14)] text-foreground'
+                    : 'hover:bg-[oklch(1_0_0/_0.06)] text-foreground/85'
                 )}
               >
-                <span className="font-medium">{suggestion.name}</span>
+                <span className="font-medium tracking-tight">{suggestion.name}</span>
                 {suggestion._count && (
-                  <span className="ml-2 text-xs text-gray-500">
-                    ({suggestion._count.favorites})
+                  <span className="text-[0.65rem] font-mono text-muted-foreground">
+                    {suggestion._count.favorites}
                   </span>
                 )}
               </button>
@@ -196,9 +176,9 @@ export function TagInput({ label, value = [], onChange, placeholder = "Add tags.
         )}
       </div>
 
-      <p className="text-xs text-gray-500 mt-1">
-        Press Enter, comma, or space to add tags
+      <p className="text-[0.7rem] text-muted-foreground/70 mt-2 font-mono">
+        Enter, comma or space to add
       </p>
     </div>
   );
-} 
+}

@@ -8,6 +8,7 @@ import { ExternalLink, Star, MoreVertical, Trash2, Tag } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FavoriteData, normalizeFavorite, ApiFavoriteData } from '@/types/models';
+import { tagChipClass } from '@/lib/tagColor';
 
 interface FavoriteCardProps {
   favorite: FavoriteData;
@@ -59,58 +60,55 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
   };
 
   const renderStars = () => (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map(star => (
-        <button
-          key={star}
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map(star => {
+        const filled = star <= (favorite.rating || 0);
+        return (
+          <button
+            key={star}
             onClick={() => updateRating(star)}
-          disabled={isUpdating}
-          className="p-0.5 hover:scale-110 transition-transform disabled:cursor-not-allowed"
-        >
-          <Star
-            className={`w-4 h-4 ${
-              star <= (favorite.rating || 0)
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          />
-        </button>
-      ))}
-      {typeof favorite.rating === 'number' && (
-        <span className="text-sm text-muted-foreground ml-2">{favorite.rating}/5</span>
+            disabled={isUpdating}
+            aria-label={`Rate ${star} of 5`}
+            className="p-0.5 transition-transform hover:scale-110 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded"
+          >
+            <Star
+              className={`w-4 h-4 transition-colors ${
+                filled
+                  ? 'fill-[oklch(0.84_0.17_85)] text-[oklch(0.84_0.17_85)] drop-shadow-[0_0_6px_oklch(0.84_0.17_85/_0.6)]'
+                  : 'text-muted-foreground/40 hover:text-[oklch(0.84_0.17_85)]'
+              }`}
+            />
+          </button>
+        );
+      })}
+      {typeof favorite.rating === 'number' && favorite.rating > 0 && (
+        <span className="text-[0.7rem] font-mono text-muted-foreground ml-1.5 tabular-nums">
+          {favorite.rating}/5
+        </span>
       )}
     </div>
   );
 
-  const getTagColor = (tag: string) => {
-    const colors = [
-      'bg-blue-100 text-blue-800',
-      'bg-green-100 text-green-800',
-      'bg-purple-100 text-purple-800',
-      'bg-orange-100 text-orange-800',
-      'bg-pink-100 text-pink-800',
-      'bg-indigo-100 text-indigo-800',
-      'bg-teal-100 text-teal-800',
-      'bg-red-100 text-red-800',
-    ];
-    const hash = tag.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   return (
-    <Card className="group hover:shadow-md transition-shadow min-w-0">
+    <Card className="group min-w-0 card-glow-hover">
       <CardHeader className="pb-3 grid-cols-[minmax(0,1fr)]">
         <div className="flex items-start justify-between gap-2 min-w-0">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm leading-6 text-foreground truncate">{favorite.title || 'Untitled'}</h3>
-            <p className="text-xs text-muted-foreground mt-1 truncate">{favorite.domain}</p>
+            <h3 className="font-semibold text-sm leading-6 text-foreground tracking-tight truncate">
+              {favorite.title || 'Untitled'}
+            </h3>
+            <p className="text-[0.7rem] font-mono text-muted-foreground/80 mt-1 truncate">
+              {favorite.domain}
+            </p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="More actions"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -122,10 +120,10 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Tag className="mr-2 h-4 w-4" />
-                  Edit Tags
+                  Edit tags
                 </DropdownMenuItem>
               </EditTagsDialog>
-              <DropdownMenuItem onClick={deleteFavorite} className="text-destructive">
+              <DropdownMenuItem onClick={deleteFavorite} variant="destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
@@ -135,22 +133,26 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
       </CardHeader>
       <CardContent className="pt-0">
         {favorite.description && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{favorite.description}</p>
+          <p className="text-[0.8rem] text-muted-foreground/85 mb-4 line-clamp-2 leading-relaxed">
+            {favorite.description}
+          </p>
         )}
         {favorite.tags && favorite.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-4">
             {favorite.tags.map(tag => (
-              <span key={tag.id} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}>
+              <span key={tag.id} className={tagChipClass(tag.name)}>
                 {tag.name}
               </span>
             ))}
           </div>
         )}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 pt-1">
           {renderStars()}
-          <Button variant="outline" size="sm" onClick={() => window.open(favorite.url, '_blank')} className="shrink-0">
-            <ExternalLink className="w-4 h-4 mr-1" />
-            Visit
+          <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
+            <a href={favorite.url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-3.5 h-3.5" />
+              Visit
+            </a>
           </Button>
         </div>
       </CardContent>
