@@ -1,19 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2, Tag as TagIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface ManagedTag {
+  id: string;
+  name: string;
+  color?: string | null;
+  _count?: { favorites: number };
+}
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [tags, setTags] = useState<ManagedTag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
+  const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
   const router = useRouter();
+
+  const fetchTags = useCallback(async () => {
+    try {
+      const response = await fetch('/api/tags');
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!response.ok) throw new Error('Tags konnten nicht geladen werden');
+      const data = await response.json();
+      setTags(data.tags);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Tags konnten nicht geladen werden');
+    } finally {
+      setTagsLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    fetchTags();
+  }, [fetchTags]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +79,39 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteTag = async (tag: ManagedTag) => {
+    const usage = tag._count?.favorites ?? 0;
+    const message = usage > 0
+      ? `Tag "${tag.name}" wird von ${usage} Favoriten verwendet und dort ebenfalls entfernt. Fortfahren?`
+      : `Tag "${tag.name}" wirklich löschen?`;
+    if (!window.confirm(message)) return;
+
+    setDeletingTagId(tag.id);
+    try {
+      const response = await fetch(`/api/tags/${tag.id}`, { method: 'DELETE' });
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Tag konnte nicht gelöscht werden');
+      }
+      setTags(prev => prev.filter(t => t.id !== tag.id));
+      toast.success(`Tag "${tag.name}" gelöscht`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Tag konnte nicht gelöscht werden');
+    } finally {
+      setDeletingTagId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-xl mx-auto space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Einstellungen</CardTitle>
+            <CardTitle>Passwort ändern</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,9 +156,56 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TagIcon className="w-4 h-4" />
+              Tags verwalten
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {tagsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Lade Tags…
+              </div>
+            ) : tags.length === 0 ? (
+              <p className="text-sm text-gray-500">Noch keine Tags vorhanden.</p>
+            ) : (
+              <ul className="divide-y">
+                {tags.map((tag) => {
+                  const usage = tag._count?.favorites ?? 0;
+                  const isDeleting = deletingTagId === tag.id;
+                  return (
+                    <li key={tag.id} className="flex items-center justify-between py-2 gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{tag.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {usage === 1 ? '1 Favorit' : `${usage} Favoriten`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteTag(tag)}
+                        disabled={isDeleting}
+                        aria-label={`Tag ${tag.name} löschen`}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
-
-
