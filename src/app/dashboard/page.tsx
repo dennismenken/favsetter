@@ -135,6 +135,16 @@ export default function DashboardPage() {
     (a, b) => groupedFavorites[b].length - groupedFavorites[a].length
   );
 
+  // URLs that appear more than once for this user are surfaced on each
+  // matching card so existing duplicates can be spotted and cleaned up.
+  const duplicateUrls = (() => {
+    const counts = new Map<string, number>();
+    for (const f of favorites) counts.set(f.url, (counts.get(f.url) ?? 0) + 1);
+    const dupes = new Set<string>();
+    for (const [url, count] of counts) if (count > 1) dupes.add(url);
+    return dupes;
+  })();
+
   const toggleTagFilter = (tagName: string) => {
     setSelectedTags(prev =>
       prev.includes(tagName)
@@ -360,6 +370,7 @@ export default function DashboardPage() {
                     <FavoriteCard
                       key={favorite.id}
                       favorite={favorite}
+                      duplicate={duplicateUrls.has(favorite.url)}
                       onUpdate={handleFavoriteUpdate}
                       onDelete={handleFavoriteDelete}
                     />

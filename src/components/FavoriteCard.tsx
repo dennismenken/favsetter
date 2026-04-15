@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { EditTagsDialog } from '@/components/EditTagsDialog';
-import { ExternalLink, Star, MoreVertical, Trash2, Tag } from 'lucide-react';
+import { ExternalLink, Star, MoreVertical, Trash2, Tag, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FavoriteData, normalizeFavorite, ApiFavoriteData } from '@/types/models';
@@ -22,11 +22,12 @@ import { tagChipClass } from '@/lib/tagColor';
 
 interface FavoriteCardProps {
   favorite: FavoriteData;
+  duplicate?: boolean;
   onUpdate: (id: string, updates: Partial<FavoriteData>) => void;
   onDelete: (id: string) => void;
 }
 
-export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps) {
+export function FavoriteCard({ favorite, duplicate = false, onUpdate, onDelete }: FavoriteCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -112,9 +113,20 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
             <h3 className="font-semibold text-sm leading-6 text-foreground tracking-tight truncate">
               {favorite.title || 'Untitled'}
             </h3>
-            <p className="text-[0.7rem] font-mono text-muted-foreground/80 mt-1 truncate">
-              {favorite.domain}
-            </p>
+            <div className="mt-1 flex items-center gap-2 min-w-0">
+              <p className="text-[0.7rem] font-mono text-muted-foreground/80 truncate">
+                {favorite.domain}
+              </p>
+              {duplicate && (
+                <span
+                  className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.6rem] font-mono font-semibold uppercase tracking-wider text-[oklch(0.84_0.17_85)] border border-[oklch(0.84_0.17_85/0.45)] bg-[oklch(0.84_0.17_85/0.10)]"
+                  title="Another favorite has the same URL"
+                >
+                  <Copy className="w-2.5 h-2.5" />
+                  Duplicate
+                </span>
+              )}
+            </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

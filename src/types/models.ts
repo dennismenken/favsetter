@@ -42,6 +42,8 @@ export function normalizeFavorite(api: ApiFavoriteData): FavoriteData {
     title: api.title ?? undefined,
     description: api.description ?? undefined,
     rating: api.rating ?? undefined,
-    tags: api.tags?.map(t => ({ id: t.id, name: t.name, color: t.color ?? undefined }))
-  , createdAt: api.createdAt, updatedAt: api.updatedAt };
+    tags: api.tags?.map(t => ({ id: t.id, name: t.name, color: t.color ?? undefined })),
+    createdAt: api.createdAt,
+    updatedAt: api.updatedAt,
+  };
 }

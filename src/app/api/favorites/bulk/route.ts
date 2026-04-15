@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchUrlMetadata } from '@/lib/metadata';
+import { isPossibleDuplicateUrl } from '@/lib/duplicate';
 
 const MAX_URLS = 200;
 const CONCURRENCY = 8;
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => null);
     const rawUrls: unknown = body?.urls;
+    const force: boolean = body?.force === true;
 
     if (!Array.isArray(rawUrls)) {
       return NextResponse.json({ error: 'urls must be an array' }, { status: 400 });
@@ -67,16 +69,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const existing = valid.length === 0
-      ? []
-      : await prisma.favorite.findMany({
-          where: { userId: user.id, url: { in: valid } },
-          select: { url: true },
-        });
-    const existingSet = new Set(existing.map((e) => e.url));
-    const newUrls = valid.filter((u) => !existingSet.has(u));
+    type DuplicateEntry = {
+      url: string;
+      existing: { id: string; url: string; title: string | null };
+    };
 
-    const prepared = await runWithConcurrency(newUrls, CONCURRENCY, async (url) => {
+    const toImport: string[] = [];
+    const duplicates: DuplicateEntry[] = [];
+
+    if (force) {
+      toImport.push(...valid);
+    } else if (valid.length > 0) {
+      const existing = await prisma.favorite.findMany({
+        where: { userId: user.id },
+        select: { id: true, url: true, title: true },
+      });
+      for (const url of valid) {
+        const hit = existing.find((e) => isPossibleDuplicateUrl(e.url, url));
+        if (hit) {
+          duplicates.push({ url, existing: { id: hit.id, url: hit.url, title: hit.title } });
+        } else {
+          toImport.push(url);
+        }
+      }
+    }
+
+    const prepared = await runWithConcurrency(toImport, CONCURRENCY, async (url) => {
       const meta = await fetchUrlMetadata(url);
       return { url, meta };
     });
@@ -104,7 +122,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       total: deduped.length,
       added,
-      duplicates: existingSet.size,
+      duplicates,
       invalid: invalid.length,
       failed: failed.length,
     });

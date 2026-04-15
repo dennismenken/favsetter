@@ -2,6 +2,16 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,43 +24,65 @@ interface AddFavoriteDialogProps {
   onFavoriteAdded: (favorite: FavoriteData) => void;
 }
 
+interface DuplicateMatch {
+  id: string;
+  url: string;
+  title: string | null;
+}
+
 export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [duplicateMatch, setDuplicateMatch] = useState<DuplicateMatch | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url.trim()) return;
+  const submit = async (force: boolean) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
 
     setIsLoading(true);
     try {
       const response = await fetch('/api/favorites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), rating, tags }),
+        body: JSON.stringify({ url: trimmed, rating, tags, force }),
       });
 
+      if (response.status === 409) {
+        const payload = await response.json().catch(() => ({}));
+        if (payload?.duplicate) {
+          setDuplicateMatch(payload.duplicate as DuplicateMatch);
+          return;
+        }
+        throw new Error(payload?.error || 'Conflict');
+      }
+
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.error || 'Failed to add favorite');
       }
 
       const { favorite } = await response.json() as { favorite: ApiFavoriteData };
       onFavoriteAdded(normalizeFavorite(favorite));
-      toast.success('Saved to your vault.');
+      toast.success(force ? 'Saved (duplicate confirmed).' : 'Saved to your vault.');
 
       setUrl('');
       setRating(null);
       setTags([]);
+      setDuplicateMatch(null);
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to add favorite');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submit(false);
   };
 
   const renderStarRating = () => {
@@ -95,72 +127,112 @@ export function AddFavoriteDialog({ onFavoriteAdded }: AddFavoriteDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4" />
-          Add favorite
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <p className="font-eyebrow">New entry</p>
-          <DialogTitle>Add a favorite</DialogTitle>
-          <DialogDescription className="sr-only">
-            Save a link to your vault. Title and description are pulled from the page automatically.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="url" className="text-xs uppercase tracking-wider text-muted-foreground">
-              URL
-            </Label>
-            <Input
-              id="url"
-              type="url"
-              placeholder="https://example.com"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              required
-              disabled={isLoading}
-              autoFocus
+    <>
+      <Dialog open={open} onOpenChange={(next) => { if (!isLoading) setOpen(next); }}>
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4" />
+            Add favorite
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <p className="font-eyebrow">New entry</p>
+            <DialogTitle>Add a favorite</DialogTitle>
+            <DialogDescription className="sr-only">
+              Save a link to your vault. Title and description are pulled from the page automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="url" className="text-xs uppercase tracking-wider text-muted-foreground">
+                URL
+              </Label>
+              <Input
+                id="url"
+                type="url"
+                placeholder="https://example.com"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+
+            <TagInput
+              label="Tags (optional)"
+              value={tags}
+              onChange={setTags}
+              placeholder="e.g. design, inspiration"
             />
-          </div>
 
-          <TagInput
-            label="Tags (optional)"
-            value={tags}
-            onChange={setTags}
-            placeholder="e.g. design, inspiration"
-          />
+            {renderStarRating()}
 
-          {renderStarRating()}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading || !url.trim()}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Adding…
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Save link
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
+      <AlertDialog
+        open={!!duplicateMatch}
+        onOpenChange={(next) => { if (!next && !isLoading) setDuplicateMatch(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Possible duplicate detected. Add anyway?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>An existing favorite looks similar to this URL.</p>
+                {duplicateMatch && (
+                  <div className="rounded-md border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)] p-3 space-y-1">
+                    <p className="text-foreground font-medium tracking-tight truncate">
+                      {duplicateMatch.title || 'Untitled'}
+                    </p>
+                    <p className="font-mono text-[0.7rem] text-muted-foreground break-all">
+                      {duplicateMatch.url}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                submit(true);
+              }}
               disabled={isLoading}
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading || !url.trim()}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Adding…
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  Save link
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+              {isLoading ? 'Adding…' : 'Add anyway'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

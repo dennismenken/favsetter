@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchUrlMetadata } from '@/lib/metadata';
+import { isPossibleDuplicateUrl } from '@/lib/duplicate';
 import { Favorite, FavoriteTag, Tag } from '@prisma/client';
 
 interface FavoriteWithRelations extends Favorite {
@@ -23,7 +24,7 @@ export async function GET() {
 
     const favoritesWithTags = (favorites as FavoriteWithRelations[]).map(favorite => ({
       ...favorite,
-      tags: favorite.tags.map(ft => ft.tag)
+      tags: favorite.tags.map(ft => ft.tag),
     }));
 
     return NextResponse.json({ favorites: favoritesWithTags });
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { url, rating, tags = [] } = await request.json();
+    const { url, rating, tags = [], force = false } = await request.json();
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
@@ -52,12 +53,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
-    const existingFavorite = await prisma.favorite.findFirst({
-      where: { userId: user.id, url },
-    });
-
-    if (existingFavorite) {
-      return NextResponse.json({ error: 'This URL is already in your favorites' }, { status: 409 });
+    if (!force) {
+      // Check for any existing favorite that is a possible duplicate
+      // (exact match, or URL prefix match in either direction so common
+      // tracking-parameter / fragment variants are caught).
+      const candidates = await prisma.favorite.findMany({
+        where: { userId: user.id },
+        select: { id: true, url: true, title: true },
+      });
+      const match = candidates.find((c) => isPossibleDuplicateUrl(c.url, url));
+      if (match) {
+        return NextResponse.json(
+          {
+            error: 'Possible duplicate detected',
+            duplicate: { id: match.id, url: match.url, title: match.title },
+          },
+          { status: 409 }
+        );
+      }
     }
 
     const metadata = await fetchUrlMetadata(url);
