@@ -181,6 +181,20 @@ export default function DashboardPage() {
     return dupes;
   }, [favorites]);
 
+  // In Match-all mode, every tag chip shows how many favorites would still
+  // match if that tag were added to the current filter — i.e. count over
+  // `filteredFavorites`. In Match-any mode (or with no filter active) we
+  // keep the raw per-tag totals from the API.
+  const liveTagCounts = useMemo<Map<string, number> | null>(() => {
+    if (tagMatchMode !== 'and' || selectedTags.length === 0) return null;
+    const counts = new Map<string, number>();
+    for (const f of filteredFavorites) {
+      if (!f.tags) continue;
+      for (const t of f.tags) counts.set(t.name, (counts.get(t.name) ?? 0) + 1);
+    }
+    return counts;
+  }, [filteredFavorites, selectedTags, tagMatchMode]);
+
   const toggleTagFilter = (tagName: string) => {
     setSelectedTags(prev =>
       prev.includes(tagName)
@@ -436,18 +450,27 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2">
               {availableTags.map((tag) => {
                 const active = selectedTags.includes(tag.name);
+                const count = liveTagCounts
+                  ? liveTagCounts.get(tag.name) ?? 0
+                  : tag._count?.favorites;
+                const empty = liveTagCounts !== null && !active && count === 0;
                 return (
                   <button
                     key={tag.id}
                     onClick={() => toggleTagFilter(tag.name)}
                     data-active={active}
                     aria-pressed={active}
-                    className={tagChipClass(tag.name)}
+                    className={`${tagChipClass(tag.name)} ${empty ? 'opacity-40' : ''}`}
+                    title={
+                      liveTagCounts && !active
+                        ? `Adding this tag would narrow to ${count} favorite${count === 1 ? '' : 's'}`
+                        : undefined
+                    }
                   >
                     <span className="leading-none">{tag.name}</span>
-                    {tag._count && (
+                    {count !== undefined && (
                       <span className="opacity-60 font-normal leading-none tabular-nums">
-                        {tag._count.favorites}
+                        {count}
                       </span>
                     )}
                   </button>
