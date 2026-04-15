@@ -42,3 +42,7 @@ next-env.d.ts
 
 /src/generated/prisma
 prisma/db/*.db
+
+# Local Playwright/MCP debug artefacts
+/.playwright-mcp/
+/*.png
