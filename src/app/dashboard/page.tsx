@@ -8,6 +8,18 @@ import { Separator } from '@/components/ui/separator';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { AddFavoriteDialog } from '@/components/AddFavoriteDialog';
 import { BulkImportDialog } from '@/components/BulkImportDialog';
+import { BulkAddTagsDialog } from '@/components/BulkAddTagsDialog';
+import { SelectionBar } from '@/components/SelectionBar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Logo } from '@/components/Logo';
 import { Heart, Search, LogOut, User, Globe, X, Tag as TagIcon, Settings, Sparkles } from 'lucide-react';
 import {
@@ -29,8 +41,13 @@ export default function DashboardPage() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagMatchMode, setTagMatchMode] = useState<'and' | 'or'>('and');
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -105,6 +122,12 @@ export default function DashboardPage() {
 
   const handleFavoriteDelete = (id: string) => {
     setFavorites(prev => prev.filter(fav => fav.id !== id));
+    setSelectedIds(prev => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   const filteredFavorites = favorites.filter(favorite => {
@@ -114,10 +137,16 @@ export default function DashboardPage() {
       favorite.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
       favorite.tags?.some(tag => tag.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesTags = selectedTags.length === 0 ||
-      selectedTags.every(selectedTag =>
-        favorite.tags?.some(tag => tag.name === selectedTag)
-      );
+    const matchesTags =
+      selectedTags.length === 0
+        ? true
+        : tagMatchMode === 'and'
+        ? selectedTags.every((selectedTag) =>
+            favorite.tags?.some((tag) => tag.name === selectedTag)
+          )
+        : selectedTags.some((selectedTag) =>
+            favorite.tags?.some((tag) => tag.name === selectedTag)
+          );
 
     return matchesSearch && matchesTags;
   });
@@ -155,6 +184,67 @@ export default function DashboardPage() {
 
   const clearTagFilters = () => {
     setSelectedTags([]);
+  };
+
+  const handleSelectChange = (id: string, on: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleOpenInTabs = () => {
+    const urls = favorites.filter((f) => selectedIds.has(f.id)).map((f) => f.url);
+    let opened = 0;
+    let blocked = 0;
+    for (const url of urls) {
+      const w = window.open(url, '_blank', 'noopener,noreferrer');
+      if (w) opened++;
+      else blocked++;
+    }
+    if (blocked > 0) {
+      toast.warning(
+        `Opened ${opened}, ${blocked} blocked. Allow popups for this site to open all tabs.`
+      );
+    } else if (opened > 0) {
+      toast.success(`Opened ${opened} tab${opened === 1 ? '' : 's'}`);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const response = await fetch('/api/favorites/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete');
+      }
+      const result = (await response.json()) as { deleted: number };
+      setFavorites((prev) => prev.filter((f) => !selectedIds.has(f.id)));
+      clearSelection();
+      setBulkDeleteOpen(false);
+      toast.success(`Deleted ${result.deleted} favorite${result.deleted === 1 ? '' : 's'}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkTagsApplied = () => {
+    fetchFavorites();
+    fetchTags();
+    clearSelection();
   };
 
   if (isLoading) {
@@ -290,10 +380,42 @@ export default function DashboardPage() {
         {/* Tag Filters */}
         {availableTags.length > 0 && (
           <section className="space-y-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <p className="font-eyebrow flex items-center gap-1.5">
                 <TagIcon className="w-3 h-3" /> Filter by tag
               </p>
+              <div
+                className="inline-flex items-center rounded-md border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.03)] p-0.5"
+                role="group"
+                aria-label="Tag match mode"
+              >
+                <button
+                  type="button"
+                  onClick={() => setTagMatchMode('and')}
+                  aria-pressed={tagMatchMode === 'and'}
+                  title="Show favorites that have all selected tags"
+                  className={`px-2 py-0.5 text-[0.65rem] font-mono uppercase tracking-wider rounded transition-colors ${
+                    tagMatchMode === 'and'
+                      ? 'bg-[oklch(0.82_0.16_200/_0.20)] text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Match all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTagMatchMode('or')}
+                  aria-pressed={tagMatchMode === 'or'}
+                  title="Show favorites that have any of the selected tags"
+                  className={`px-2 py-0.5 text-[0.65rem] font-mono uppercase tracking-wider rounded transition-colors ${
+                    tagMatchMode === 'or'
+                      ? 'bg-[oklch(0.82_0.16_200/_0.20)] text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Match any
+                </button>
+              </div>
               {selectedTags.length > 0 && (
                 <button
                   onClick={clearTagFilters}
@@ -371,6 +493,8 @@ export default function DashboardPage() {
                       key={favorite.id}
                       favorite={favorite}
                       duplicate={duplicateUrls.has(favorite.url)}
+                      selected={selectedIds.has(favorite.id)}
+                      onSelectChange={handleSelectChange}
                       onUpdate={handleFavoriteUpdate}
                       onDelete={handleFavoriteDelete}
                     />
@@ -386,12 +510,56 @@ export default function DashboardPage() {
         )}
       </main>
 
-      <footer className="border-t border-[oklch(1_0_0/_0.05)] py-8 mt-16">
+      <footer className={`border-t border-[oklch(1_0_0/_0.05)] py-8 mt-16 ${selectedIds.size > 0 ? 'mb-24' : ''}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between text-xs text-muted-foreground/60 font-mono">
           <span>FavSetter</span>
           <span>Stay curious.</span>
         </div>
       </footer>
+
+      <SelectionBar
+        count={selectedIds.size}
+        busy={bulkBusy}
+        onClear={clearSelection}
+        onOpenInTabs={handleOpenInTabs}
+        onAddTags={() => setBulkTagsOpen(true)}
+        onDelete={() => setBulkDeleteOpen(true)}
+      />
+
+      <BulkAddTagsDialog
+        open={bulkTagsOpen}
+        ids={Array.from(selectedIds)}
+        onOpenChange={setBulkTagsOpen}
+        onApplied={handleBulkTagsApplied}
+      />
+
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open) => { if (!bulkBusy) setBulkDeleteOpen(open); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedIds.size} favorite{selectedIds.size === 1 ? '' : 's'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the selected entries from your vault.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={bulkBusy}
+            >
+              {bulkBusy ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

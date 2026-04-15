@@ -23,11 +23,20 @@ import { tagChipClass } from '@/lib/tagColor';
 interface FavoriteCardProps {
   favorite: FavoriteData;
   duplicate?: boolean;
+  selected?: boolean;
+  onSelectChange?: (id: string, selected: boolean) => void;
   onUpdate: (id: string, updates: Partial<FavoriteData>) => void;
   onDelete: (id: string) => void;
 }
 
-export function FavoriteCard({ favorite, duplicate = false, onUpdate, onDelete }: FavoriteCardProps) {
+export function FavoriteCard({
+  favorite,
+  duplicate = false,
+  selected = false,
+  onSelectChange,
+  onUpdate,
+  onDelete,
+}: FavoriteCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -106,9 +115,24 @@ export function FavoriteCard({ favorite, duplicate = false, onUpdate, onDelete }
 
   return (
     <>
-    <Card className="group min-w-0 card-glow-hover">
+    <Card
+      className={`group min-w-0 card-glow-hover ${
+        selected
+          ? 'shadow-[0_0_0_2px_oklch(0.82_0.16_200/_0.85),0_0_28px_-4px_oklch(0.82_0.16_200/_0.45)]'
+          : ''
+      }`}
+    >
       <CardHeader className="pb-3 grid-cols-[minmax(0,1fr)]">
         <div className="flex items-start justify-between gap-2 min-w-0">
+          {onSelectChange && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={(e) => onSelectChange(favorite.id, e.target.checked)}
+              aria-label={selected ? 'Deselect favorite' : 'Select favorite'}
+              className="mt-1 size-4 shrink-0 accent-[oklch(0.82_0.16_200)] cursor-pointer opacity-50 group-hover:opacity-100 transition-opacity checked:opacity-100"
+            />
+          )}
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm leading-6 text-foreground tracking-tight truncate">
               {favorite.title || 'Untitled'}
