@@ -90,7 +90,6 @@ export default function DashboardPage() {
   };
 
   const handleBulkImported = () => {
-    setIsLoading(true);
     fetchFavorites();
     fetchTags();
   };

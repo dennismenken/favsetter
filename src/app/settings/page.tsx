@@ -10,6 +10,16 @@ import { Loader2, Tag as TagIcon, Trash2, KeyRound, ArrowLeft } from 'lucide-rea
 import { toast } from 'sonner';
 import { Logo } from '@/components/Logo';
 import { tagChipClass } from '@/lib/tagColor';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ManagedTag {
   id: string;
@@ -26,6 +36,7 @@ export default function SettingsPage() {
   const [tags, setTags] = useState<ManagedTag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(true);
   const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
+  const [confirmTag, setConfirmTag] = useState<ManagedTag | null>(null);
   const router = useRouter();
 
   const fetchTags = useCallback(async () => {
@@ -81,13 +92,9 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteTag = async (tag: ManagedTag) => {
-    const usage = tag._count?.favorites ?? 0;
-    const message = usage > 0
-      ? `Tag "${tag.name}" is used by ${usage} favorite${usage === 1 ? '' : 's'} and will also be removed from them. Continue?`
-      : `Delete tag "${tag.name}"?`;
-    if (!window.confirm(message)) return;
-
+  const confirmDeleteTag = async () => {
+    if (!confirmTag) return;
+    const tag = confirmTag;
     setDeletingTagId(tag.id);
     try {
       const response = await fetch(`/api/tags/${tag.id}`, { method: 'DELETE' });
@@ -101,6 +108,7 @@ export default function SettingsPage() {
       }
       setTags(prev => prev.filter(t => t.id !== tag.id));
       toast.success(`Tag "${tag.name}" deleted`);
+      setConfirmTag(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete tag');
     } finally {
@@ -244,7 +252,7 @@ export default function SettingsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteTag(tag)}
+                        onClick={() => setConfirmTag(tag)}
                         disabled={isDeleting}
                         aria-label={`Delete tag ${tag.name}`}
                         className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 group-hover:opacity-100 transition-opacity"
@@ -263,6 +271,38 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </main>
+
+      <AlertDialog
+        open={!!confirmTag}
+        onOpenChange={(open) => {
+          if (!open && deletingTagId === null) setConfirmTag(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete tag {confirmTag ? `"${confirmTag.name}"` : ''}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {(confirmTag?._count?.favorites ?? 0) > 0
+                ? `This tag is used by ${confirmTag?._count?.favorites} favorite${confirmTag?._count?.favorites === 1 ? '' : 's'} and will also be removed from them.`
+                : 'This tag is not used by any favorite yet.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingTagId !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteTag();
+              }}
+              disabled={deletingTagId !== null}
+            >
+              {deletingTagId !== null ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

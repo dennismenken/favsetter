@@ -3,6 +3,16 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { EditTagsDialog } from '@/components/EditTagsDialog';
 import { ExternalLink, Star, MoreVertical, Trash2, Tag } from 'lucide-react';
 import { useState } from 'react';
@@ -18,6 +28,8 @@ interface FavoriteCardProps {
 
 export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const updateRating = async (rating: number) => {
     setIsUpdating(true);
@@ -44,8 +56,7 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
   };
 
   const deleteFavorite = async () => {
-    if (!confirm('Are you sure you want to delete this favorite?')) return;
-
+    setIsDeleting(true);
     try {
       const response = await fetch(`/api/favorites/${favorite.id}`, { method: 'DELETE' });
       if (!response.ok) {
@@ -54,8 +65,11 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
       }
       onDelete(favorite.id);
       toast.success('Favorite deleted');
+      setConfirmDeleteOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete favorite');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -90,6 +104,7 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
   );
 
   return (
+    <>
     <Card className="group min-w-0 card-glow-hover">
       <CardHeader className="pb-3 grid-cols-[minmax(0,1fr)]">
         <div className="flex items-start justify-between gap-2 min-w-0">
@@ -123,7 +138,13 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
                   Edit tags
                 </DropdownMenuItem>
               </EditTagsDialog>
-              <DropdownMenuItem onClick={deleteFavorite} variant="destructive">
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setConfirmDeleteOpen(true);
+                }}
+                variant="destructive"
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
@@ -157,5 +178,28 @@ export function FavoriteCard({ favorite, onUpdate, onDelete }: FavoriteCardProps
         </div>
       </CardContent>
     </Card>
+    <AlertDialog open={confirmDeleteOpen} onOpenChange={(open) => !isDeleting && setConfirmDeleteOpen(open)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this favorite?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <span className="font-medium text-foreground">{favorite.title || favorite.url}</span> will be permanently removed from your vault.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              deleteFavorite();
+            }}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
