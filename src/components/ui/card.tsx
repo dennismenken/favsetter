@@ -7,8 +7,9 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        // Glass card with gradient hairline (defined in globals.css)
-        "card-glass text-card-foreground flex flex-col gap-6 py-6",
+        // Glass card with gradient hairline (defined in globals.css).
+        // `relative` is required so the ::before hairline positions correctly.
+        "card-glass relative text-card-foreground flex flex-col gap-6 py-6",
         className
       )}
       {...props}

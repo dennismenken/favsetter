@@ -185,9 +185,11 @@
     color: var(--muted-foreground);
   }
 
-  /* Glass card with gradient hairline border using mask trick */
+  /* Glass card with gradient hairline border using mask trick.
+     Position is intentionally NOT set here so consumers can be relative,
+     absolute or fixed without fighting the cascade. The ::before relies
+     on the consumer being positioned (any non-static will do). */
   .card-glass {
-    position: relative;
     background:
       linear-gradient(
         180deg,

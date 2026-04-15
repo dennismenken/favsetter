@@ -320,7 +320,7 @@ export default function DashboardPage() {
 
         {/* Favorites */}
         {filteredFavorites.length === 0 ? (
-          <div className="card-glass text-center py-16 px-6">
+          <div className="card-glass relative text-center py-16 px-6">
             <div className="inline-flex items-center justify-center size-14 rounded-xl border border-[oklch(1_0_0/_0.10)] bg-[oklch(1_0_0/_0.04)] mb-5">
               <Heart className="w-6 h-6 text-muted-foreground/70" />
             </div>
@@ -401,7 +401,7 @@ function StatTile({
     : accent === 'magenta' ? 'oklch(0.68 0.27 350)'
     : 'oklch(0.84 0.17 85)';
   return (
-    <div className="card-glass card-glow-hover p-4 flex flex-col justify-between gap-3">
+    <div className="card-glass card-glow-hover relative p-4 flex flex-col justify-between gap-3">
       <div className="flex items-center justify-between">
         <span
           className="inline-flex items-center justify-center size-8 rounded-md border"
