@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -130,49 +130,56 @@ export default function DashboardPage() {
     });
   };
 
-  const filteredFavorites = favorites.filter(favorite => {
-    const matchesSearch =
-      favorite.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      favorite.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      favorite.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      favorite.tags?.some(tag => tag.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredFavorites = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return favorites.filter((favorite) => {
+      const matchesSearch =
+        favorite.title?.toLowerCase().includes(q) ||
+        favorite.domain.toLowerCase().includes(q) ||
+        favorite.url.toLowerCase().includes(q) ||
+        favorite.tags?.some((tag) => tag.name.toLowerCase().includes(q));
 
-    const matchesTags =
-      selectedTags.length === 0
-        ? true
-        : tagMatchMode === 'and'
-        ? selectedTags.every((selectedTag) =>
-            favorite.tags?.some((tag) => tag.name === selectedTag)
-          )
-        : selectedTags.some((selectedTag) =>
-            favorite.tags?.some((tag) => tag.name === selectedTag)
-          );
+      const matchesTags =
+        selectedTags.length === 0
+          ? true
+          : tagMatchMode === 'and'
+          ? selectedTags.every((selectedTag) =>
+              favorite.tags?.some((tag) => tag.name === selectedTag)
+            )
+          : selectedTags.some((selectedTag) =>
+              favorite.tags?.some((tag) => tag.name === selectedTag)
+            );
 
-    return matchesSearch && matchesTags;
-  });
+      return matchesSearch && matchesTags;
+    });
+  }, [favorites, searchQuery, selectedTags, tagMatchMode]);
 
-  const groupedFavorites = filteredFavorites.reduce((groups, favorite) => {
-    const domain = favorite.domain;
-    if (!groups[domain]) {
-      groups[domain] = [];
-    }
-    groups[domain].push(favorite);
-    return groups;
-  }, {} as Record<string, Favorite[]>);
+  const groupedFavorites = useMemo(() => {
+    return filteredFavorites.reduce((groups, favorite) => {
+      const domain = favorite.domain;
+      if (!groups[domain]) groups[domain] = [];
+      groups[domain].push(favorite);
+      return groups;
+    }, {} as Record<string, Favorite[]>);
+  }, [filteredFavorites]);
 
-  const sortedDomains = Object.keys(groupedFavorites).sort(
-    (a, b) => groupedFavorites[b].length - groupedFavorites[a].length
+  const sortedDomains = useMemo(
+    () =>
+      Object.keys(groupedFavorites).sort(
+        (a, b) => groupedFavorites[b].length - groupedFavorites[a].length
+      ),
+    [groupedFavorites]
   );
 
   // URLs that appear more than once for this user are surfaced on each
   // matching card so existing duplicates can be spotted and cleaned up.
-  const duplicateUrls = (() => {
+  const duplicateUrls = useMemo(() => {
     const counts = new Map<string, number>();
     for (const f of favorites) counts.set(f.url, (counts.get(f.url) ?? 0) + 1);
     const dupes = new Set<string>();
     for (const [url, count] of counts) if (count > 1) dupes.add(url);
     return dupes;
-  })();
+  }, [favorites]);
 
   const toggleTagFilter = (tagName: string) => {
     setSelectedTags(prev =>
@@ -519,7 +526,7 @@ export default function DashboardPage() {
 
       <SelectionBar
         count={selectedIds.size}
-        busy={bulkBusy}
+        busy={bulkBusy || bulkTagsOpen || bulkDeleteOpen}
         onClear={clearSelection}
         onOpenInTabs={handleOpenInTabs}
         onAddTags={() => setBulkTagsOpen(true)}
